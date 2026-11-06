@@ -215,7 +215,7 @@ func (s *Server) handleSecretWrite(w http.ResponseWriter, r *http.Request) {
 			}
 			s.log.Error("vault create", "name", name, "err", err.Error())
 			s.audit(login, "secret-create", name, "error", "")
-			fail(http.StatusBadGateway, "the vault refused the write (check the IAM policy for app-* secrets)")
+			fail(http.StatusBadGateway, "the vault refused to create the secret. Creating needs IAM permissions this deployment may not have (see deploy/README.md): create it with make secret and make vault-push, then use this screen to list it, add versions and reveal it")
 			return
 		}
 		s.audit(login, "secret-create", name, "ok", "v1")

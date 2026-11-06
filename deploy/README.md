@@ -41,8 +41,9 @@ and pull it with an image pull secret.
   Allow dynamic-group <group> to use keys in <compartment> where target.key.id = '<master key OCID>'
   ```
   `inspect secrets` is unconditional because a list request has no single target for a name condition; it exposes names and metadata, never values.
-  Verify the name condition on `manage secrets` for *creating* a secret in your tenancy: if creating fails while adding a version works, OCI ignores
-  the condition on create. The instance principal belongs to the host, so any pod on that node could use the same grant.
+  **Creating a secret did not work** in the author's tenancy: OCI answered 404 for `CreateSecret` under the name-scoped grant, under
+  `request.permission = 'SECRET_CREATE'` and under an unconditional `manage secrets`. The missing piece is unknown (probably a permission on the master key). Listing, revealing
+  and adding versions work. The instance principal belongs to the host, so any pod on that node can use the same grant.
 
 ## RBAC at a glance
 
