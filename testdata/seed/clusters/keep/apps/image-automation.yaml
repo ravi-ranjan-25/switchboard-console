@@ -1,0 +1,111 @@
+# Flux image automation for the three built apps. CI pushes zot.configs.svc.cluster.local:5000/<app>:<ts>-<sha>
+# (e.g. 20261031120000-abc1234; a :buildcache tag also lives in each repo). The policy keeps only
+# tags of that shape and sorts them by the numeric timestamp. Flux commits the new tag into the
+# marked image lines under ./apps (`# {"$imagepolicy": "flux-system:<app>:tag"}`), on branch main.
+# Credentials: Secret flux-system/zot-reader (ExternalSecret, infrastructure/configs/secrets/registry.yaml).
+# Zot is plain HTTP in-cluster, hence insecure: true.
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: portfolio
+  namespace: flux-system
+spec:
+  image: ghcr.io/example-owner/portfolio-site
+  interval: 5m
+  secretRef:
+    name: ghcr-pull
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: portfolio
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: portfolio
+  filterTags:
+    pattern: '^(?P<ts>[0-9]{14})-[a-f0-9]{7}$'
+    extract: '$ts'
+  policy:
+    numerical:
+      order: asc
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: fitness
+  namespace: flux-system
+spec:
+  image: ghcr.io/example-owner/fitness-service
+  interval: 5m
+  secretRef:
+    name: ghcr-pull
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: fitness
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: fitness
+  filterTags:
+    pattern: '^(?P<ts>[0-9]{14})-[a-f0-9]{7}$'
+    extract: '$ts'
+  policy:
+    numerical:
+      order: asc
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: clientapp
+  namespace: flux-system
+spec:
+  image: zot.configs.svc.cluster.local:5000/clientapp
+  interval: 5m
+  insecure: true
+  secretRef:
+    name: zot-reader
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: clientapp
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: clientapp
+  filterTags:
+    pattern: '^(?P<ts>[0-9]{14})-[a-f0-9]{7}$'
+    extract: '$ts'
+  policy:
+    numerical:
+      order: asc
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: apps
+  namespace: flux-system
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: fluxcdbot
+        email: fluxcdbot@users.noreply.github.com
+      # Renders e.g. "chore(images): portfolio -> 20261031120000-abc1234" (Deployment name = app name).
+      messageTemplate: |-
+        chore(images): {{ range $obj, $changes := .Changed.Objects }}{{ $obj.Name }}{{ range $changes }} -> {{ .NewValue }}{{ end }} {{ end }}
+    push:
+      branch: main
+  update:
+    path: ./apps
+    strategy: Setters

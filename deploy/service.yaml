@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: switchboard
+  namespace: watchtower
+  labels: {citadel.dev/app: switchboard, citadel.dev/exposure: google}
+spec:
+  selector: {citadel.dev/app: switchboard}
+  ports: [{name: http, port: 8080, targetPort: http}]

@@ -1,0 +1,22 @@
+# The real file is clusters/keep/apps/switchboard.yaml; this is the reference copy.
+# The expose component (expose-google-restricted) lives in deploy/kustomization.yaml, not in
+# spec.components, so Switchboard shows itself as "not switchable": it must never loosen its own exposure.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: switchboard
+  namespace: flux-system
+spec:
+  interval: 10m
+  prune: true
+  sourceRef: {kind: GitRepository, name: flux-system}
+  path: ./tools/switchboard/deploy
+  dependsOn: [{name: infra-configs}]
+  postBuild:
+    substitute:
+      APP: switchboard
+      NAMESPACE: watchtower
+      PORT: "8080"
+      HOST: switchboard.example.com
+      ALLOWED_EMAILS: owner@example.com,second-owner@example.com
+      SWITCHBOARD_TAG: "20261101000000-abc1234"   # a tag from GHCR, e.g. 20261101120000-1a2b3c4

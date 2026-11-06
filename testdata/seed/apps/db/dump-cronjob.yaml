@@ -1,0 +1,23 @@
+# Synthetic fixture: nightly logical dump of every database in the loop below.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-logical-dump
+  namespace: configs
+spec:
+  schedule: "17 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: dump
+              image: docker.io/library/postgres:17
+              command: ["/bin/sh", "-euc"]
+              args:
+                - |
+                  for d in n8n planka; do
+                    pg_dump -h db-rw.configs -U postgres -Fc -f "/dump/$d.dump" "$d"
+                    echo "dumped $d"
+                  done

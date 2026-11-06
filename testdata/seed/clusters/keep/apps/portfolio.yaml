@@ -1,0 +1,25 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: portfolio
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 2m
+  timeout: 5m
+  prune: true
+  wait: false # replicas-0 or not-yet-built images must not hold up the rest
+  sourceRef: {kind: GitRepository, name: flux-system}
+  path: ./apps/portfolio
+  # No targetNamespace: db-client and the backup components emit objects into other namespaces.
+  dependsOn:
+    - name: infra-configs
+  components:
+    - ../../components/expose-public # <- the line Switchboard edits
+    - ../../components/app-netpol
+  postBuild:
+    substitute:
+      APP: portfolio
+      NAMESPACE: personal
+      PORT: "3000"
+      HOST: example.com

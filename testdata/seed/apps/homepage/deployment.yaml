@@ -1,0 +1,67 @@
+# Image runs as root by default and a root user is rejected by PSA restricted; uid 1000 works
+# because the config comes from a ConfigMap and the only writable paths are emptyDirs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+  namespace: personal
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      citadel.dev/app: homepage
+  template:
+    metadata:
+      labels:
+        citadel.dev/app: homepage
+        app.kubernetes.io/name: homepage
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: homepage
+          image: ghcr.io/gethomepage/homepage:v2.7.0@sha256:19c5c09184458a41b7b5915e71463a39f36cd33540f41bdbed008791b8182d5f
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - {name: HOMEPAGE_ALLOWED_HOSTS, value: "${HOST}"}
+            - {name: PORT, value: "3000"}
+            - {name: HOSTNAME, value: 0.0.0.0}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 20m, memory: 96Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          # TCP, not HTTP: homepage rejects requests whose Host header is not in the allowlist.
+          readinessProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: {port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - {name: config, mountPath: /app/config}
+            - {name: logs, mountPath: /app/config/logs}
+            - {name: nextcache, mountPath: /app/.next/cache}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: config
+          configMap:
+            name: homepage
+        - name: logs
+          emptyDir: {sizeLimit: 64Mi}
+        - name: nextcache
+          emptyDir: {sizeLimit: 256Mi}
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}

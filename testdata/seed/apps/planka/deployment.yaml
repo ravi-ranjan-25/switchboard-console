@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planka
+  namespace: personal
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate # RWO volume
+  selector:
+    matchLabels:
+      citadel.dev/app: planka
+  template:
+    metadata:
+      labels:
+        citadel.dev/app: planka
+        app.kubernetes.io/name: planka
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # image user "node"
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: planka
+          image: ghcr.io/plankanban/planka:2.2.1@sha256:125f45330853210c678fed1132bedc0912b4a11a27779b79802fbca108e069e2
+          ports:
+            - name: http
+              containerPort: 1337
+          env:
+            - {name: BASE_URL, value: "https://${HOST}"}
+            - {name: TRUST_PROXY, value: "true"}
+          envFrom:
+            - secretRef:
+                name: planka
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 768Mi}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            initialDelaySeconds: 40
+            periodSeconds: 20
+            timeoutSeconds: 5
+          volumeMounts:
+            - {name: data, mountPath: /app/data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: planka-data
+        - name: tmp
+          emptyDir: {sizeLimit: 256Mi}

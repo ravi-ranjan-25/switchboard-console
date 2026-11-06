@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio
+  namespace: personal
+spec:
+  selector:
+    citadel.dev/app: portfolio
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

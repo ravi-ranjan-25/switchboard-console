@@ -1,0 +1,25 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: excalidraw
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 2m
+  timeout: 5m
+  prune: true
+  wait: false # replicas-0 or not-yet-built images must not hold up the rest
+  sourceRef: {kind: GitRepository, name: flux-system}
+  path: ./apps/excalidraw
+  # No targetNamespace: db-client and the backup components emit objects into other namespaces.
+  dependsOn:
+    - name: infra-configs
+  components:
+    - ../../components/expose-google # <- the line Switchboard edits
+    - ../../components/app-netpol
+  postBuild:
+    substitute:
+      APP: excalidraw
+      NAMESPACE: personal
+      PORT: "80"
+      HOST: draw.example.com

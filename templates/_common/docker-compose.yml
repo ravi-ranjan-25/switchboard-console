@@ -1,0 +1,10 @@
+# Local run: docker compose up --build  ->  http://localhost:[[.Port]]
+services:
+  [[.Name]]:
+    build: .
+    image: [[.Name]]:dev
+    ports:
+      - "[[.Port]]:[[.Port]]"
+    env_file:
+      - path: .env
+        required: false

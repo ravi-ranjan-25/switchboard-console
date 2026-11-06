@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# No Namespace here: `watchtower` is created once by infrastructure/namespaces.
+resources:
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+# Components read ${APP} ${NAMESPACE} ${HOST} ${PORT} from Flux postBuild.
+# expose-google-restricted: tailnet + Google sign-in, only ${ALLOWED_EMAILS} (per-app Middleware that
+# passes X-Auth-Request-Email to the pod). app-netpol: allow Traefik/Tailscale -> :${PORT}.
+# Extra variable: ALLOWED_EMAILS (comma-separated), also read by the app as its own allowlist.
+components:
+  - ../../../components/expose-google-restricted
+  - ../../../components/app-netpol

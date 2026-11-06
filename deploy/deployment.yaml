@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: switchboard
+  namespace: watchtower
+  labels: {citadel.dev/app: switchboard, citadel.dev/exposure: google}
+spec:
+  replicas: 1          # in-memory "pending switch" lock assumes a single instance
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {citadel.dev/app: switchboard}
+  template:
+    metadata:
+      labels: {citadel.dev/app: switchboard, citadel.dev/exposure: google}
+    spec:
+      serviceAccountName: switchboard
+      imagePullSecrets:
+        - name: ghcr-pull   # must exist in namespace watchtower (see deploy/README.md)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: switchboard
+          # Built by .github/workflows/build.yml into GHCR (private package). ${SWITCHBOARD_TAG} comes from Flux
+          # postBuild in clusters/keep/apps/switchboard.yaml, bumped by hand: see deploy/README.md.
+          image: ghcr.io/example-owner/switchboard-console:${SWITCHBOARD_TAG}
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: REPO, value: example-owner/citadel}
+            - {name: BRANCH, value: main}
+            - {name: APPS_DIR, value: clusters/keep/apps}
+            - {name: PROTECTED_APPS, value: "switchboard<=google-restricted,auth=public,oauth2-proxy=public,headlamp<=google-restricted"}
+            - {name: GITHUB_PRIVATE_KEY_PATH, value: /secrets/github-app/private-key}
+            - name: GITHUB_APP_ID
+              valueFrom: {secretKeyRef: {name: github-app, key: app-id}}
+            - name: GITHUB_INSTALLATION_ID
+              valueFrom: {secretKeyRef: {name: github-app, key: installation-id}}
+            # Identity: the page requires X-Auth-Request-Email (oauth2-proxy via the Traefik forwardAuth) to be
+            # one of these. Same value as the Middleware's allowed_emails, from Flux postBuild.
+            - {name: ALLOWED_EMAILS, value: "${ALLOWED_EMAILS}"}
+            # Create a new project: fine-grained PAT (see deploy/README.md). The secret is optional; without it the option is off.
+            - {name: GITHUB_REPO_TOKEN_PATH, value: /secrets/repo-token/token}
+            # Secrets screen (app-* secrets in the OCI Vault via keep's instance principal). Empty = screen off.
+            # All three ids are set in the Flux Kustomization's postBuild.substitute (see deploy/README.md for the IAM policy).
+            - {name: OCI_VAULT_ID, value: "${VAULT_ID:=}"}
+            - {name: OCI_COMPARTMENT_ID, value: "${OCI_COMPARTMENT_ID:=}"}
+            - {name: OCI_KEY_ID, value: "${OCI_KEY_ID:=}"}
+          volumeMounts:
+            - {name: github-app, mountPath: /secrets/github-app, readOnly: true}
+            - {name: repo-token, mountPath: /secrets/repo-token, readOnly: true}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 20}
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+            seccompProfile: {type: RuntimeDefault}
+      volumes:
+        - name: repo-token
+          secret:
+            secretName: github-repo-token
+            optional: true
+            defaultMode: 0440
+        - name: github-app
+          secret:
+            secretName: github-app
+            defaultMode: 0440
+            items: [{key: private-key, path: private-key}]

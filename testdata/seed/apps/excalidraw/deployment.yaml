@@ -1,0 +1,60 @@
+# nginx image (stateless). Pinned by digest of upstream :latest as of 2026-10-31 (upstream only
+# publishes latest and sha-<commit> tags). Runs as the image's nginx user (101); port 80 is bound
+# unprivileged via the allowed sysctl net.ipv4.ip_unprivileged_port_start (no extra capability).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: excalidraw
+  namespace: personal
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      citadel.dev/app: excalidraw
+  template:
+    metadata:
+      labels:
+        citadel.dev/app: excalidraw
+        app.kubernetes.io/name: excalidraw
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+        sysctls:
+          - {name: net.ipv4.ip_unprivileged_port_start, value: "0"}
+      containers:
+        - name: excalidraw
+          image: docker.io/excalidraw/excalidraw@sha256:f7ee194addd607bf831d2af0f0a34463dd4225e426cf35199ef0b12a803398e9
+          ports:
+            - name: http
+              containerPort: 80
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          volumeMounts:
+            - {name: cache, mountPath: /var/cache/nginx}
+            - {name: run, mountPath: /run}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: cache
+          emptyDir: {sizeLimit: 64Mi}
+        - name: run
+          emptyDir: {sizeLimit: 8Mi}
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}

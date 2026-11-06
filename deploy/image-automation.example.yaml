@@ -1,0 +1,30 @@
+# OPTIONAL: let Flux bump Switchboard itself. Not recommended for a tool that can edit the repo that deploys it:
+# bump SWITCHBOARD_TAG by hand instead (see README.md). If you do want it, append to clusters/keep/apps/image-automation.yaml,
+# replace the ${SWITCHBOARD_TAG} image line with a literal tag plus the marker
+#   image: ghcr.io/example-owner/switchboard-console:20261101000000-abc1234 # {"$imagepolicy": "flux-system:switchboard"}
+# and extend ImageUpdateAutomation spec.update.path from ./apps to ./ (or add a second automation for ./tools).
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: switchboard
+  namespace: flux-system
+spec:
+  image: ghcr.io/example-owner/switchboard-console
+  interval: 5m
+  secretRef:
+    name: ghcr-pull
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: switchboard
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: switchboard
+  filterTags:
+    pattern: '^(?P<ts>[0-9]{14})-[a-f0-9]{7}$'
+    extract: '$ts'
+  policy:
+    numerical:
+      order: asc

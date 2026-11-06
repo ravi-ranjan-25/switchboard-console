@@ -1,0 +1,16 @@
+version: 2
+# Monthly, grouped, no major-version jumps: a major bump of a framework or a JDK/Node base image is a deliberate
+# upgrade (code changes, new toolchain), not something to merge from a bot PR. Remove the ignore blocks when you want them.
+updates:
+[[.Dependabot]]
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

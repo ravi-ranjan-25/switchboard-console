@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # data layer
+  - db-vars.yaml
+  - db.yaml
+  # personal
+  - portfolio.yaml
+  - fitness.yaml
+  - feedback.yaml
+  - n8n.yaml
+  - planka.yaml
+  - excalidraw.yaml
+  - homepage.yaml
+  - kali.yaml
+  - kali-lab.yaml
+  - workbench.yaml
+  # client
+  - clientapp.yaml
+  # image automation for portfolio, fitness, clientapp
+  - image-automation.yaml
+  # ops UIs (written by the platform agent)
+  - switchboard.yaml
+  - headlamp.yaml

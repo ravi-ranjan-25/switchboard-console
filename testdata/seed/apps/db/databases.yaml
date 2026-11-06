@@ -1,0 +1,25 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: n8n
+  namespace: configs
+  labels:
+    citadel.dev/app: db
+spec:
+  cluster: {name: db}
+  name: n8n
+  owner: n8n
+  databaseReclaimPolicy: retain
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: planka
+  namespace: configs
+  labels:
+    citadel.dev/app: db
+spec:
+  cluster: {name: db}
+  name: planka
+  owner: planka
+  databaseReclaimPolicy: retain

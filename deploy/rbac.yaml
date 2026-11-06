@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: switchboard
+  namespace: watchtower
+  labels: {citadel.dev/app: switchboard}
+automountServiceAccountToken: true  # needed: the app talks to the API server
+---
+# Read-only view of Flux Kustomizations (status pills + revision).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: switchboard-flux-read
+  namespace: flux-system
+rules:
+  - apiGroups: [kustomize.toolkit.fluxcd.io]
+    resources: [kustomizations]
+    verbs: [get, list, watch]
+---
+# The ONLY write: annotate GitRepository/flux-system with reconcile.fluxcd.io/requestedAt.
+# `patch` by resourceName cannot touch any other object; no create/delete/update.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: switchboard-flux-fetch
+  namespace: flux-system
+rules:
+  - apiGroups: [source.toolkit.fluxcd.io]
+    resources: [gitrepositories]
+    resourceNames: [flux-system]
+    verbs: [patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: switchboard-flux-read
+  namespace: flux-system
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: switchboard-flux-read}
+subjects: [{kind: ServiceAccount, name: switchboard, namespace: watchtower}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: switchboard-flux-fetch
+  namespace: flux-system
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: switchboard-flux-fetch}
+subjects: [{kind: ServiceAccount, name: switchboard, namespace: watchtower}]
+---
+# v2 (read-only): Flux image scan results for the tag list and rollback.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: switchboard-flux-images-read
+  namespace: flux-system
+rules:
+  - apiGroups: [image.toolkit.fluxcd.io]
+    resources: [imagerepositories, imagepolicies]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: switchboard-flux-images-read
+  namespace: flux-system
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: switchboard-flux-images-read}
+subjects: [{kind: ServiceAccount, name: switchboard, namespace: watchtower}]
+---
+# v2 (read-only): pods, their log lines and ExternalSecret status in the two app namespaces.
+# No secrets, no exec, no write verbs. Repeat the Role+RoleBinding pair for every namespace in APP_NAMESPACES.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: switchboard-apps-read
+  namespace: personal
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
+  - apiGroups: [external-secrets.io]
+    resources: [externalsecrets]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: switchboard-apps-read
+  namespace: personal
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: switchboard-apps-read}
+subjects: [{kind: ServiceAccount, name: switchboard, namespace: watchtower}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: switchboard-apps-read
+  namespace: client
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
+  - apiGroups: [external-secrets.io]
+    resources: [externalsecrets]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: switchboard-apps-read
+  namespace: client
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: switchboard-apps-read}
+subjects: [{kind: ServiceAccount, name: switchboard, namespace: watchtower}]

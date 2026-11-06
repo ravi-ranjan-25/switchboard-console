@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio
+  namespace: personal
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      citadel.dev/app: portfolio
+  template:
+    metadata:
+      labels:
+        citadel.dev/app: portfolio
+        app.kubernetes.io/name: portfolio
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: portfolio
+          # Tag bumped by Flux image automation (clusters/keep/apps/image-automation.yaml).
+          # The first tag below is a placeholder until CI has pushed an image.
+          image: registry.example.com/portfolio:20260101000000-0000000 # {"$imagepolicy": "flux-system:portfolio"}
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - {name: PORT, value: "3000"}
+            - {name: HOSTNAME, value: 0.0.0.0}
+          envFrom:
+            - secretRef:
+                name: portfolio
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 384Mi}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 256Mi}

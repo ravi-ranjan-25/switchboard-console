@@ -1,0 +1,69 @@
+# Image: upstream publishes nightly-YYYYMMDD tags (latest on 2026-10-31 is nightly-20260723) and
+# 0.3.0-alpha.1; there is no stable release, so a dated nightly is pinned by digest. Bump by hand
+# (or let Renovate do it). The image runs as root by default; here uid 10001 with a writable
+# PVC (local-path creates volumes 0777), which PSA restricted requires.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feedback
+  namespace: personal
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate # RWO volume
+  selector:
+    matchLabels:
+      citadel.dev/app: feedback
+  template:
+    metadata:
+      labels:
+        citadel.dev/app: feedback
+        app.kubernetes.io/name: feedback
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: feedback
+          image: ghcr.io/got-feedback/feedback:nightly-20260723@sha256:227d9d050ad40b8bef546384f7bc1cc1ff1b1befad33a2aeb920baf98fe0cee1
+          # The image CMD is "python main.py"; subdirs are created first so one PVC serves config + library.
+          command: ["/bin/sh", "-c", "mkdir -p /data/config /data/dlc && exec python main.py"]
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - {name: PYTHONPATH, value: "/app/lib:/app"}
+            - {name: CONFIG_DIR, value: /data/config}
+            - {name: DLC_DIR, value: /data/dlc}
+            - {name: HOME, value: /tmp}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: feedback-data
+        - name: tmp
+          emptyDir: {sizeLimit: 1Gi}

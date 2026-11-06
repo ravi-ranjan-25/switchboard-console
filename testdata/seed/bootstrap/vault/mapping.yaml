@@ -1,0 +1,8 @@
+# Synthetic fixture: maps local sources to vault secret names (no values).
+sops:
+  keep--pg-superuser-password:                {key: pg_superuser_password,            source: generated}
+  keep--n8n-db-password:                      {key: n8n_db_password,                  source: generated}
+  keep--n8n-encryption-key:                   {key: n8n_encryption_key,               source: generated}
+  keep--planka-db-password:                   {key: planka_db_password,               source: generated}
+  keep--planka-secret-key:                    {key: planka_secret_key,                source: generated}
+  shared--restic-password:                    {key: restic_password,                  source: generated}

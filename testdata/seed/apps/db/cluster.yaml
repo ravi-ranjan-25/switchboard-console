@@ -1,0 +1,26 @@
+# Synthetic fixture: a shared CloudNativePG cluster with one managed role per app.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: db
+  namespace: configs
+  labels:
+    citadel.dev/app: db
+spec:
+  instances: 1
+  storage:
+    size: 8Gi
+  managed:
+    roles:
+      - name: n8n
+        ensure: present
+        login: true
+        passwordSecret:
+          name: db-n8n
+      - name: planka
+        ensure: present
+        login: true
+        passwordSecret:
+          name: db-planka
+  env:
+    - {name: EXAMPLE_SETTING, value: "1"}

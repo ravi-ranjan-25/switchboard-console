@@ -1,0 +1,24 @@
+# Switchboard: google-restricted (tailnet + Google sign-in for the two owner emails).
+# Its expose component is NOT in spec.components: it lives in tools/switchboard/deploy/kustomization.yaml,
+# so Switchboard lists itself as "not switchable" and can never loosen its own exposure (it is also
+# denylisted to google-restricted or tighter).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: switchboard
+  namespace: flux-system
+spec:
+  interval: 10m
+  prune: true
+  sourceRef: {kind: GitRepository, name: flux-system}
+  path: ./tools/switchboard/deploy
+  dependsOn:
+    - name: infra-configs
+  postBuild:
+    substitute:
+      APP: switchboard
+      NAMESPACE: watchtower
+      PORT: "8080"
+      HOST: switchboard.example.com
+      ALLOWED_EMAILS: owner@example.com,second-owner@example.com
+      SWITCHBOARD_TAG: "0.1.0"   # image tag in Zot; bumped by CI/image automation

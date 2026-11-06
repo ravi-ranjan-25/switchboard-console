@@ -1,0 +1,33 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: planka
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 2m
+  timeout: 5m
+  prune: true
+  wait: false # replicas-0 or not-yet-built images must not hold up the rest
+  sourceRef: {kind: GitRepository, name: flux-system}
+  path: ./apps/planka
+  # No targetNamespace: db-client and the backup components emit objects into other namespaces.
+  dependsOn:
+    - name: infra-configs
+    - name: db
+  components:
+    - ../../components/expose-google # <- the line Switchboard edits
+    - ../../components/app-netpol
+    - ../../components/db-client
+    - ../../components/backup-pvc
+    - ../../infrastructure/configs/backup/pvc-backup
+    - ../../infrastructure/configs/backup/restore-if-empty
+  postBuild:
+    substitute:
+      APP: planka
+      NAMESPACE: personal
+      PORT: "1337"
+      HOST: plan.example.com
+      PVC: planka-data
+      DATA_VOLUME: data
+      BACKUP_UID: "1000"

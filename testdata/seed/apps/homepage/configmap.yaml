@@ -1,0 +1,89 @@
+# Static dashboard config. Service discovery from Ingresses is skipped on purpose (it would need
+# cluster RBAC); add new apps here by hand. Keep the hrefs in step with clusters/keep/apps/*.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage
+  namespace: personal
+data:
+  settings.yaml: |
+    title: Citadel
+    headerStyle: clean
+    theme: dark
+    color: slate
+    layout:
+      Apps:
+        style: row
+        columns: 4
+      Tools:
+        style: row
+        columns: 4
+      Platform:
+        style: row
+        columns: 4
+  services.yaml: |
+    - Apps:
+        - Portfolio:
+            href: https://example.com
+            description: Personal site
+            icon: mdi-account
+        - ClientApp:
+            href: https://client.example.org
+            description: Client site
+            icon: mdi-domain
+        - Fitness:
+            href: https://fitness.example.com
+            description: Fitness assistant
+            icon: mdi-dumbbell
+        - feedBack:
+            href: https://play.example.com
+            description: Music practice
+            icon: mdi-guitar-electric
+    - Tools:
+        - n8n:
+            href: https://n8n.example.com
+            description: Workflow automation
+            icon: n8n
+        - Planka:
+            href: https://plan.example.com
+            description: Kanban boards
+            icon: planka
+        - Excalidraw:
+            href: https://draw.example.com
+            description: Whiteboard
+            icon: excalidraw
+    - Platform:
+        - Switchboard:
+            href: https://switchboard.example.com
+            description: Change app exposure
+            icon: mdi-toggle-switch
+        - Headlamp:
+            href: https://headlamp.example.com
+            description: Kubernetes UI
+            icon: kubernetes
+        - Pi-hole:
+            href: https://pihole.example.com
+            description: DNS
+            icon: pi-hole
+        - Beszel:
+            href: https://beszel.example.com
+            description: Host metrics
+            icon: beszel
+        - Uptime Kuma:
+            href: https://kuma.example.com
+            description: Uptime
+            icon: uptime-kuma
+  bookmarks.yaml: |
+    []
+  widgets.yaml: |
+    - resources:
+        cpu: true
+        memory: true
+    - datetime:
+        text_size: xl
+        format:
+          timeStyle: short
+  docker.yaml: |
+    {}
+  kubernetes.yaml: |
+    {}

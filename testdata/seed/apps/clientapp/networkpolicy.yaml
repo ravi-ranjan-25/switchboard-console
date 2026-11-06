@@ -1,0 +1,27 @@
+# Own copy of components/app-netpol: that component opens ${PORT}, which here is the SERVICE port
+# (80), but NetworkPolicy matches the pod port (8080). Hence this file and no app-netpol component.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: clientapp-ingress
+  namespace: client
+spec:
+  podSelector:
+    matchLabels:
+      citadel.dev/app: clientapp
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale
+      ports:
+        - protocol: TCP
+          port: 8080

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="csrf-token" content="{{.CSRF}}">
+<title>Switchboard</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">
+  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="6" fill="currentColor" opacity=".14"/><circle cx="8" cy="8" r="2" fill="currentColor"/><circle cx="16" cy="8" r="2" fill="currentColor"/><circle cx="8" cy="16" r="2" fill="currentColor"/><circle cx="16" cy="16" r="2" fill="currentColor"/><path d="M8 10v4M16 10v4M10 8h4M10 16h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></g></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"><path d="M12 4l9 16H3z" stroke-linejoin="round"/><path d="M12 10v4M12 17.2v.1"/></g></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></symbol>
+  <symbol id="i-net" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"><circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="19" r="2.2"/><circle cx="19" cy="19" r="2.2"/><path d="M12 7.2v4.3M12 11.5L6 17M12 11.5l6 5.5"/></g></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" fill="none"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to apps</a>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/" aria-label="Switchboard home"><svg class="ico"><use href="#i-logo"/></svg><span>Switchboard</span></a>
+    <span class="chip" id="repo-chip" hidden></span>
+    <span class="chip chip-warn" id="demo-chip" hidden>demo data</span>
+    <span class="grow"></span>
+    <span class="who" id="who"></span>
+    <button type="button" class="btn" id="btn-network"><svg class="ico"><use href="#i-net"/></svg><span>Network</span></button>
+    <button type="button" class="btn" id="btn-secrets" hidden><svg class="ico"><use href="#i-lock"/></svg><span>Secrets</span></button>
+    <button type="button" class="btn" id="btn-domain"><svg class="ico"><use href="#i-globe"/></svg><span>Add domain</span></button>
+    <button type="button" class="btn primary" id="btn-new"><svg class="ico"><use href="#i-plus"/></svg><span>New app</span></button>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <section class="hero" aria-label="Overview">
+    <div>
+      <h1>Apps</h1>
+      <p class="sub">Every change here is a git commit to the citadel repo. Flux applies it; nothing touches the cluster directly.</p>
+    </div>
+    <dl class="stats" id="stats"></dl>
+  </section>
+
+  <div class="toolbar">
+    <label class="search"><span class="sr">Search apps</span><svg class="ico"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search apps or hosts" autocomplete="off" spellcheck="false"></label>
+    <div class="filters" role="group" aria-label="Filter by exposure" id="filters"></div>
+  </div>
+
+  <p id="banner" class="banner" role="alert" hidden></p>
+  <div id="grid" class="grid" aria-live="polite" aria-busy="true">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  </div>
+  <p id="empty" class="empty" hidden>No apps match.</p>
+</main>
+
+<!-- Detail drawer -->
+<dialog id="drawer" class="drawer" aria-labelledby="dr-title">
+  <div class="dr-head">
+    <div class="dr-id"><h2 id="dr-title"></h2><div class="dr-meta" id="dr-meta"></div></div>
+    <button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="tabs" role="tablist" id="dr-tabs" aria-label="App sections"></div>
+  <div class="dr-body" id="dr-body" tabindex="0"></div>
+</dialog>
+
+<!-- New app wizard -->
+<dialog id="wizard" class="modal wide" aria-labelledby="wz-title">
+  <form method="dialog" class="modal-in" id="wz-form" novalidate>
+    <div class="modal-head">
+      <div><h2 id="wz-title">New app</h2><ol class="steps" id="wz-steps" aria-label="Steps"><li>Describe</li><li>Review files</li><li>Commit</li></ol></div>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body" id="wz-body"></div>
+    <div class="modal-foot" id="wz-foot"></div>
+  </form>
+</dialog>
+
+<!-- Add domain -->
+<dialog id="domain" class="modal wide" aria-labelledby="dm-title">
+  <form method="dialog" class="modal-in" id="dm-form" novalidate>
+    <div class="modal-head">
+      <div><h2 id="dm-title">Add domain</h2><ol class="steps" id="dm-steps" aria-label="Steps"><li>Describe</li><li>Review</li><li>Commit</li></ol></div>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body" id="dm-body"></div>
+    <div class="modal-foot" id="dm-foot"></div>
+  </form>
+</dialog>
+
+<!-- Network -->
+<dialog id="network" class="modal wide" aria-labelledby="nw-title">
+  <div class="modal-in">
+    <div class="modal-head">
+      <div><h2 id="nw-title">Network</h2><p class="sub small">Which app may call which app inside the cluster. Everything is blocked unless a rule allows it. Each change is a reviewed commit to citadel.</p></div>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body" id="nw-body" tabindex="0"></div>
+    <div class="modal-foot" id="nw-foot"></div>
+  </div>
+</dialog>
+
+<!-- Secrets -->
+<dialog id="secrets" class="modal wide" aria-labelledby="sc-title">
+  <div class="modal-in">
+    <div class="modal-head">
+      <div><h2 id="sc-title">Secrets</h2><p class="sub small" id="sc-sub">App secrets in the OCI Vault. Values are write-only unless you click Reveal (logged).</p></div>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body" id="sc-body" tabindex="0"></div>
+    <div class="modal-foot" id="sc-foot"></div>
+  </div>
+</dialog>
+
+<!-- Generic confirm -->
+<dialog id="confirm" class="modal" aria-labelledby="cf-title">
+  <form method="dialog" class="modal-in" id="cf-form" novalidate>
+    <div class="modal-head"><h2 id="cf-title"></h2><button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body" id="cf-body"></div>
+    <div class="modal-foot" id="cf-foot"></div>
+  </form>
+</dialog>
+
+<aside class="tray" id="tray" aria-label="Activity" hidden>
+  <div class="tray-head"><strong>Activity</strong><button type="button" class="icon-btn small" id="tray-clear" aria-label="Dismiss finished"><svg class="ico"><use href="#i-x"/></svg></button></div>
+  <ol id="tray-list"></ol>
+</aside>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<noscript><p class="banner err">Switchboard needs JavaScript.</p></noscript>
+<script src="/app.js" defer></script>
+</body>
+</html>
